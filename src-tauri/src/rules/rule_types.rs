@@ -27,7 +27,6 @@ pub enum CompiledRule {
         order: u32,
         pattern: Regex,
         replace: String,
-        multiline: bool,
     },
     Trim {
         id: String,
@@ -114,7 +113,6 @@ impl TryFrom<&RuleDefinition> for CompiledRule {
                     order: def.order,
                     pattern,
                     replace: replace.to_string(),
-                    multiline,
                 })
             }
             RuleType::Trim => Ok(CompiledRule::Trim {

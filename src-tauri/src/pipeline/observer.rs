@@ -1,15 +1,16 @@
-use crate::pipeline::watcher::ClipboardChanged;
+use crate::pipeline::dedupe::DedupeGuard;
+use crate::pipeline::watcher::{compute_hash, ClipboardChanged};
 
 pub struct ClipboardObserver {
     poll_interval_ms: u64,
-    last_hash: Option<String>,
+    dedupe: DedupeGuard,
 }
 
 impl ClipboardObserver {
-    pub fn new(poll_interval_ms: u64) -> Self {
+    pub fn new(poll_interval_ms: u64, dedupe_window: usize) -> Self {
         Self {
             poll_interval_ms,
-            last_hash: None,
+            dedupe: DedupeGuard::new(dedupe_window),
         }
     }
 
@@ -19,11 +20,9 @@ impl ClipboardObserver {
         let text = read_clipboard()?;
         let hash = compute_hash(&text);
 
-        if Some(&hash) == self.last_hash.as_ref() {
+        if self.dedupe.seen_recently(&hash) {
             return None;
         }
-
-        self.last_hash = Some(hash.clone());
 
         Some(ClipboardChanged {
             timestamp: chrono::Utc::now(),
@@ -35,11 +34,4 @@ impl ClipboardObserver {
 
 fn read_clipboard() -> Option<String> {
     arboard::Clipboard::new().ok()?.get_text().ok()
-}
-
-fn compute_hash(text: &str) -> String {
-    use sha2::{Digest, Sha256};
-    let mut hasher = Sha256::new();
-    hasher.update(text.as_bytes());
-    format!("{:x}", hasher.finalize())
 }

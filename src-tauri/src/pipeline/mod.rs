@@ -7,10 +7,10 @@ pub mod watcher;
 pub mod writer;
 
 use anyhow::Result;
-use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 
 use crate::app_state::AppState;
+use crate::config::loader::load_config;
 use crate::context::detect_active_context;
 use crate::pipeline::context::ContextDecision;
 use crate::pipeline::logger::{ContextLog, EventLogger, EventLog};
@@ -24,10 +24,22 @@ pub async fn start_background_workers(app: AppHandle, state: AppState) -> Result
     let log_dir = state
         .log_dir()
         .ok_or_else(|| anyhow::anyhow!("log dir unavailable"))?;
+    let config_dir = state
+        .config_dir()
+        .ok_or_else(|| anyhow::anyhow!("config dir unavailable"))?;
+    let config = load_config(&config_dir.join("config.json"))?;
 
-    let mut logger = EventLogger::new(log_dir, 7)?;
+    let mut logger = EventLogger::new(log_dir, config.log_retention_days)?;
     let mut writer = ClipboardWriter::new(10, 500)?;
-    let mut observer = ClipboardObserver::new(200);
+    let mut observer = ClipboardObserver::new(200, config.dedupe_window);
+    let terminal_confidence_threshold = config.terminal_confidence_threshold;
+
+    tracing::info!(
+        dedupe_window = config.dedupe_window,
+        log_retention_days = config.log_retention_days,
+        terminal_confidence_threshold,
+        "loaded pipeline configuration"
+    );
 
     tokio::spawn(async move {
         tracing::info!("pipeline workers started");
@@ -36,7 +48,13 @@ pub async fn start_background_workers(app: AppHandle, state: AppState) -> Result
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
             if app.state::<AppState>().monitoring_enabled() {
-                let _ = process_event(&mut observer, &mut logger, &mut writer).await;
+                let _ = process_event(
+                    &mut observer,
+                    &mut logger,
+                    &mut writer,
+                    terminal_confidence_threshold,
+                )
+                .await;
             }
         }
     });
@@ -49,13 +67,14 @@ async fn process_event(
     observer: &mut ClipboardObserver,
     logger: &mut EventLogger,
     writer: &mut ClipboardWriter,
+    terminal_confidence_threshold: f32,
 ) -> Result<()> {
     let Some(change) = observer.next_change().await else {
         return Ok(());
     };
 
     let context = detect_active_context().unwrap_or_else(|_| ContextDecision::unknown());
-    if !context.is_terminal {
+    if !context.is_terminal || context.confidence < terminal_confidence_threshold {
         return Ok(());
     }
 

@@ -1,8 +1,6 @@
 use anyhow::Result;
 use chrono::Utc;
 use std::collections::VecDeque;
-use std::sync::Arc;
-use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct ClipboardWriteFingerprint {

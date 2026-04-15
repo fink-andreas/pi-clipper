@@ -169,4 +169,4 @@ GitHub repository:
 
 ## License
 
-No license file has been added yet. Treat the project as all rights reserved until a license is published.
+MIT. See `LICENSE`.

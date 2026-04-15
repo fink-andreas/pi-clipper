@@ -116,7 +116,6 @@ mod tests {
             order: 1,
             pattern: regex::Regex::new(r"\s+").unwrap(),
             replace: " ".to_string(),
-            multiline: false,
         };
 
         let input = "hello   world";

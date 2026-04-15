@@ -6,7 +6,6 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::SystemTime;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventLog {
@@ -36,10 +35,11 @@ pub struct EventLogger {
     log_dir: PathBuf,
     log_file: PathBuf,
     retention_days: u32,
-    max_preview: usize,
 }
 
 impl EventLogger {
+    const MAX_PREVIEW_CHARS: usize = 200;
+
     pub fn new(log_dir: PathBuf, retention_days: u32) -> Result<Self> {
         fs::create_dir_all(&log_dir)?;
 
@@ -49,7 +49,6 @@ impl EventLogger {
             log_dir,
             log_file,
             retention_days,
-            max_preview: 200,
         })
     }
 
@@ -94,8 +93,11 @@ impl EventLogger {
     }
 
     pub fn truncate_preview(text: &str) -> String {
-        if text.len() > 200 {
-            let mut preview = text.chars().take(200).collect::<String>();
+        if text.len() > Self::MAX_PREVIEW_CHARS {
+            let mut preview = text
+                .chars()
+                .take(Self::MAX_PREVIEW_CHARS)
+                .collect::<String>();
             preview.push_str("...");
             preview
         } else {
