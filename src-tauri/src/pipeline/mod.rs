@@ -29,13 +29,18 @@ pub async fn start_background_workers(app: AppHandle, state: AppState) -> Result
         .ok_or_else(|| anyhow::anyhow!("config dir unavailable"))?;
     let config = load_config(&config_dir.join("config.json"))?;
 
-    let mut logger = EventLogger::new(log_dir, config.log_retention_days)?;
+    let mut logger = if config.event_logging_enabled {
+        Some(EventLogger::new(log_dir, config.log_retention_days)?)
+    } else {
+        None
+    };
     let mut writer = ClipboardWriter::new(10, 500)?;
     let mut observer = ClipboardObserver::new(200, config.dedupe_window);
     let terminal_confidence_threshold = config.terminal_confidence_threshold;
 
     tracing::info!(
         dedupe_window = config.dedupe_window,
+        event_logging_enabled = config.event_logging_enabled,
         log_retention_days = config.log_retention_days,
         terminal_confidence_threshold,
         "loaded pipeline configuration"
@@ -50,7 +55,7 @@ pub async fn start_background_workers(app: AppHandle, state: AppState) -> Result
             if app.state::<AppState>().monitoring_enabled() {
                 let _ = process_event(
                     &mut observer,
-                    &mut logger,
+                    logger.as_mut(),
                     &mut writer,
                     terminal_confidence_threshold,
                 )
@@ -65,7 +70,7 @@ pub async fn start_background_workers(app: AppHandle, state: AppState) -> Result
 
 async fn process_event(
     observer: &mut ClipboardObserver,
-    logger: &mut EventLogger,
+    logger: Option<&mut EventLogger>,
     writer: &mut ClipboardWriter,
     terminal_confidence_threshold: f32,
 ) -> Result<()> {
@@ -84,7 +89,7 @@ async fn process_event(
 fn sanitize_and_write(
     change: &crate::pipeline::watcher::ClipboardChanged,
     context: &ContextDecision,
-    logger: &mut EventLogger,
+    logger: Option<&mut EventLogger>,
     writer: &mut ClipboardWriter,
 ) -> Result<()> {
     let start = std::time::Instant::now();
@@ -123,7 +128,10 @@ fn sanitize_and_write(
         error: None,
     };
 
-    logger.log(&event_log)?;
+    if let Some(logger) = logger {
+        logger.log(&event_log)?;
+    }
+
     Ok(())
 }
 

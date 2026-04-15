@@ -21,7 +21,7 @@ impl AppState {
         let config_dir = base.join("pi-clipper");
         let log_dir = config_dir.join("logs");
 
-        std::fs::create_dir_all(&log_dir)?;
+        std::fs::create_dir_all(&config_dir)?;
 
         Ok(Self {
             inner: Arc::new(Mutex::new(AppStateInner {

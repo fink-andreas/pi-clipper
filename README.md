@@ -12,7 +12,7 @@ What works today:
 - Windows-focused terminal detection
 - Clipboard monitoring with dedupe and self-write loop protection
 - Deterministic rule pipeline for terminal cleanup
-- Structured JSONL event logging with retention
+- Optional structured JSONL event logging
 - Tray-only app with enable/disable, open logs folder, and quit actions
 - Regression tests for sanitizer behavior
 
@@ -34,7 +34,7 @@ Current limitations:
   - one shared leading space across copied blocks
 - Preserves multi-line structure for code and JSON
 - Avoids clipboard rewrite loops
-- Writes structured local logs for inspection and debugging
+- Optional structured local logs for inspection and debugging
 - Uses local-only processing; no outbound network behavior in the app
 
 ## Supported terminals
@@ -56,7 +56,7 @@ Pipeline overview:
 3. Detect the currently focused application/window
 4. If terminal confidence is high enough, run the sanitizer pipeline
 5. If output changed, write cleaned text back to clipboard
-6. Log the decision and applied actions to JSONL
+6. Optionally log the decision and applied actions to JSONL
 
 ## Build from source
 
@@ -141,9 +141,11 @@ For deeper rule details and examples, see:
 
 - Processing is local only
 - No clipboard history is uploaded anywhere
+- Event logging is **disabled by default**
 - Full clipboard content is **not** stored by default
-- Logs contain hashes, context metadata, truncated previews, rule actions, status, and duration
-- Logs are stored as JSONL with rotation/retention behavior
+- When enabled, logs contain hashes, context metadata, truncated previews, rule actions, status, and duration
+- When enabled, logs are stored as JSONL with rotation/retention behavior
+- Enable logging by setting `event_logging_enabled` to `true` in the app config JSON
 
 ## Project docs
 
