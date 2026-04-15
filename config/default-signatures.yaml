@@ -1,0 +1,25 @@
+# Terminal detection signatures by platform
+windows:
+  process_names:
+    - WindowsTerminal.exe
+    - powershell.exe
+    - cmd.exe
+    - wezterm-gui.exe
+    - alacritty.exe
+    - putty.exe
+    - kitty.exe
+
+macos:
+  bundle_ids:
+    - com.apple.Terminal
+    - com.googlecode.iterm2
+    - dev.warp.Warp-Stable
+    - org.wezfurlong.wezterm
+
+linux:
+  process_names:
+    - gnome-terminal
+    - konsole
+    - kitty
+    - alacritty
+    - wezterm

@@ -1,0 +1,11 @@
+kubectl patch clusterrole <clientname>-cluster-admin-role --type='json' -p='[
+  {
+    "op": "add",
+    "path": "/rules/-",
+    "value": {
+      "apiGroups": [""],
+      "resources": ["secrets"],
+      "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]
+    }
+  }
+]'

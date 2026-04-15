@@ -1,0 +1,25 @@
+# Ordered cleanup rules for terminal clipboard snippets
+rules:
+  - id: strip_ansi
+    enabled: true
+    order: 10
+    type: regex_replace
+    params:
+      pattern: "\\x1B\\[[0-9;]*[A-Za-z]"
+      replace: ""
+      multiline: true
+
+  - id: strip_shell_prompt
+    enabled: true
+    order: 20
+    type: regex_replace
+    params:
+      pattern: "^(\\$ |PS [^>]+> |➜ )"
+      replace: ""
+      multiline: true
+
+  - id: trim_blank_edges
+    enabled: true
+    order: 90
+    type: trim
+    params: {}

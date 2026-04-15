@@ -1,0 +1,14 @@
+{
+  "name": "pi-clipper",
+  "version": "0.1.0",
+  "description": "Tray-first clipboard terminal snippet cleaner",
+  "scripts": {
+    "dev": "cargo tauri dev",
+    "build": "npx tauri build",
+    "tauri": "cargo tauri",
+    "verify:clip": "cd src-tauri && cargo test --test test_clipboard_integration --test test_rules"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}
