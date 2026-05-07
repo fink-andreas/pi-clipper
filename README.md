@@ -89,6 +89,27 @@ npm run dev
 npm run build
 ```
 
+This produces:
+- **NSIS installer:** `src-tauri/target/release/bundle/nsis/Pi-Clipper_0.1.0_x64-setup.exe`
+- **MSI installer:** `src-tauri/target/release/bundle/msi/Pi-Clipper_0.1.0_x64_en-US.msi`
+- **Standalone exe:** `src-tauri/target/release/pi-clipper.exe`
+
+### Install locally
+
+**Option 1: Run standalone exe**
+```bash
+src-tauri/target/release/pi-clipper.exe
+```
+
+**Option 2: NSIS installer**
+Double-click `Pi-Clipper_0.1.0_x64-setup.exe` and follow the wizard.
+Installs to: `C:\Users\<user>\AppData\Local\Pi-Clipper\pi-clipper.exe`
+
+**Option 3: MSI installer**
+```bash
+msiexec /i src-tauri/target/release/bundle/msi/Pi-Clipper_0.1.0_x64_en-US.msi
+```
+
 ### Windows helper scripts
 
 ```powershell
@@ -124,6 +145,24 @@ cargo test --manifest-path src-tauri/Cargo.toml
    - enable or disable monitoring
    - open the logs folder
    - quit the app
+
+### Checking if installed
+
+**Find the installed exe:**
+```bash
+dir /s /b "%LOCALAPPDATA%\Pi-Clipper\pi-clipper.exe"
+```
+
+**Check if running:**
+```bash
+tasklist | findstr pi-clipper
+```
+
+**View logs:**
+```bash
+dir %APPDATA%\pi-clipper\logs\
+type %APPDATA%\pi-clipper\logs\events.jsonl | more
+```
 
 ## Rules
 
