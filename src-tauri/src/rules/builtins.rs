@@ -19,7 +19,8 @@ pub fn default_rules() -> Vec<RuleDefinition> {
             order: 20,
             rule_type: RuleType::RegexReplace,
             params: serde_json::json!({
-                "pattern": r"^[\$%>#]\s+",
+                // Match shell prompts: "$ ", ">", "# ", or SSH-style "user@host:~$ "
+                "pattern": "^(?:\\$|%|#|>)\\s+|\\w+@[\\w.-]+:[^\\s$#]*[#$]\\s*",
                 "replace": "",
                 "multiline": true
             }),
@@ -41,7 +42,9 @@ pub fn default_rules() -> Vec<RuleDefinition> {
             order: 30,
             rule_type: RuleType::RegexReplace,
             params: serde_json::json!({
-                "pattern": r"^\d+\s+",
+                // Only match lines that are purely line numbers like "1. ", "(1) ", "1)"
+                // Does NOT match command output like "1024" on its own line
+                "pattern": r"^\d+[\.:) ][\t ]+",
                 "replace": "",
                 "multiline": true
             }),

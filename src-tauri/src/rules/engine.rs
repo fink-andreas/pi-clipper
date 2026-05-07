@@ -1,5 +1,7 @@
 use crate::pipeline::sanitizer::{RuleAction, SanitizeResult};
+use crate::rules::builtins::default_rules;
 use crate::rules::rule_types::{CompiledRule, RuleDefinition};
+use regex::Regex;
 
 pub fn apply_rules(input: &str, rules: &[RuleDefinition]) -> SanitizeResult {
     let mut actions = Vec::new();
@@ -208,5 +210,78 @@ mod tests {
         let input = "hello world";
         let result = apply_rules(input, &rules);
         assert_eq!(result.output, "hi world");
+    }
+
+    #[test]
+    fn test_strip_sh_prompt_preserves_numeric_output() {
+        // This is the key test for the bug: command output like "1024" should NOT be stripped
+        let rules = default_rules();
+        let input = "root@node-01:~# ulimit -Sn\r\n1024\r\nroot@node-01:~#";
+        let result = apply_rules(input, &rules);
+        
+        // The number "1024" should be preserved in the output
+        assert!(
+            result.output.contains("1024"),
+            "Numeric output 1024 should be preserved. Got: {:?}",
+            result.output
+        );
+        
+        // Prompt lines should be removed
+        assert!(
+            !result.output.contains("root@node-01:~#"),
+            "Prompt markers should be removed. Got: {:?}",
+            result.output
+        );
+    }
+
+    #[test]
+    fn test_strip_line_numbers_preserves_numeric_output() {
+        // The strip_line_numbers rule strips patterns like "1. ", "1) ", "1: "
+        // but should NOT remove command output like "1024" on its own line
+        let pattern_str = r"^\d+[\.:) ][\t ]+";
+        let multiline = true;
+        
+        let re = regex::RegexBuilder::new(pattern_str)
+            .multi_line(multiline)
+            .build()
+            .unwrap();
+        
+        // With the FIXED pattern, command output like "1024" should be preserved
+        let test_input = "root@node-01:~# ulimit -Sn\r\n1024\r\nroot@node-01:~#";
+        let result = re.replace_all(test_input, "");
+        
+        println!("Input: {:?}", test_input);
+        println!("After strip_line_numbers (fixed pattern): {:?}", result);
+        
+        // FIXED: Command output "1024" should be preserved
+        assert!(result.contains("1024"), "FIXED: Numeric output 1024 should be preserved. Result: {:?}", result);
+        
+        // But actual line number formats should still be stripped
+        let with_line_numbers = "1. First line\r\n2. Second line";
+        let result2 = re.replace_all(with_line_numbers, "[X]");
+        println!("Line numbers test: {:?} -> {:?}", with_line_numbers, result2);
+        assert!(result2.contains("[X]"), "Line numbers should be stripped. Result: {:?}", result2);
+    }
+
+    #[test]
+    fn test_strip_line_numbers_only_numbered_lines() {
+        // Verify the pattern only strips lines with proper line number prefixes
+        let pattern_str = r"^\d+[\.:) ][\t ]+";
+        let multiline = true;
+        
+        let re = regex::RegexBuilder::new(pattern_str)
+            .multi_line(multiline)
+            .build()
+            .unwrap();
+        
+        // Line numbers should be stripped
+        assert!(re.is_match("1. Some text"), "Should match 1. Some text");
+        assert!(re.is_match("42) Answer here"), "Should match 42) Answer here");
+        assert!(re.is_match("3: Item three"), "Should match 3: Item three");
+        
+        // But pure number output should NOT be stripped
+        assert!(!re.is_match("1024"), "Should NOT match 1024 alone");
+        assert!(!re.is_match("error 42 occurred"), "Should NOT match error 42 occurred");
+        assert!(!re.is_match("42"), "Should NOT match 42 alone");
     }
 }

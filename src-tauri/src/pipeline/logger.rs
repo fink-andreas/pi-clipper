@@ -125,6 +125,7 @@ impl EventLogger {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uuid::Uuid;
 
     #[test]
     fn test_truncate_preview_short() {
@@ -159,5 +160,20 @@ mod tests {
         };
         let json = serde_json::to_string(&log).unwrap();
         assert!(json.contains("event_id"));
+    }
+
+    #[test]
+    fn test_strip_sh_prompt_preserves_numbers() {
+        // This test verifies that command output like 1024 is NOT stripped by strip_sh_prompt
+        // Input has command output "1024" - should NOT be stripped
+        // Uses the NEW pattern which includes SSH-style prompts
+        let input = "root@node-01:~# ulimit -Sn\r\n1024\r\nroot@node-01:~#";
+        let pattern = regex::Regex::new(r"^(?:\$|%|#|>)\s+|\w+@[\w.-]+:[^\s$#]*[#$]\s*").unwrap();
+        let result = pattern.replace_all(input, "");
+        
+        // The output should still contain "1024"
+        assert!(result.contains("1024"), "strip_sh_prompt incorrectly removed 1024 from output. Got: {:?}", result);
+        // Should NOT contain any prompt prefixes
+        assert!(!result.contains("root@node-01:~#"), "strip_sh_prompt did not remove prompt. Got: {:?}", result);
     }
 }
